@@ -1,6 +1,6 @@
 import './App.css';
-import CreateBid from './Auction/Create';
-import ViewTableComponent from './Auction/View';
+import CreateBid from './Tasks/Create';
+import ViewTableComponent from './Tasks/View';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 

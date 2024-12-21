@@ -15,42 +15,31 @@ import {
   GridRowEditStopReasons,
 } from '@mui/x-data-grid';
 import {
-  randomId,
+  randomId, randomInt
 } from '@mui/x-data-grid-generator';
 import './view.css';
 import { useNavigate } from "react-router-dom";
+import useFetch from '../../Service/useFetch';
+import usePost from '../../Service/usePost';
+import { getUrl } from '../../Service/ApiService';
 
-
-
-const initialRows = [
-  {
-    id: 1,
-    name: 'Create a User story for Login',
-    priority: 1,
-    status: "Not Started"
-  },
-  {
-    id: 2,
-    name: 'Create a User story for Logoff',
-    priority: 2,
-    status: "Not Started"
-  }
-];
 
 function EditToolbar(props) {
   const { setRows, setRowModesModel } = props;
 
   const handleClick = () => {
-    const id = randomId();
+    const id = 0;
     setRows((oldRows) => [
       ...oldRows,
-      { id, name: '', age: '', role: '', isNew: true },
+      { id, name: '' , priority: 0, status: '', isNew: true },
     ]);
     setRowModesModel((oldModel) => ({
       ...oldModel,
-      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'name' },
+      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'id' }
     }));
   };
+
+  
 
   return (
     <GridToolbarContainer>
@@ -63,11 +52,19 @@ function EditToolbar(props) {
 }
 
 export default function ViewTableComponent() {
-  let navigate = useNavigate();
+  const [data]= useFetch(getUrl);
+  const [rows, setRows] = React.useState([]);
+  const [rowModesModel, setRowModesModel] = React.useState({});
+  let isCall = false;
+  
+  
+  React.useEffect(()=> {
+    setRows(data)
+  },[data])
+
   // console.log(localStorage.getItem("LoggedinUser"))
   
-  const [rows, setRows] = React.useState(initialRows);
-  const [rowModesModel, setRowModesModel] = React.useState({});
+ 
 
   const handleRowEditStop = (params, event) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
@@ -79,7 +76,10 @@ export default function ViewTableComponent() {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
   };
 
+  
+  
   const handleSaveClick = (id) => () => {
+    
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
   };
 
@@ -89,15 +89,6 @@ export default function ViewTableComponent() {
   };
 
 
-  const handleBidClick = (id) => () => {
-    let path = `/place-bid`; 
-    navigate(path, {state: id});   
-  };
-
-  const handleLogout =() => () => {
-    localStorage.clear();
-    navigate(`/login`)
-  }
 
   const handleCancelClick = (id) => () => {
     setRowModesModel({
@@ -111,17 +102,28 @@ export default function ViewTableComponent() {
     }
   };
 
+  const postDataAPI = (newrow) => {   
+     let body= JSON.stringify({
+        id: newrow.id,
+        name: newrow.name,
+        priority: newrow.priority,
+        status: newrow.status
+    })
+    fetch('http://localhost:5173/api/Tasks/CreateTasks', {
+        method: 'post',
+        headers: {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'},
+        body: body
+    }).then((res) => res.json());
+    
+  }
+
   const processRowUpdate = (newRow) => {
+    postDataAPI(newRow)
+
     const updatedRow = { ...newRow, isNew: false };
     setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
     return updatedRow;
   };
-
-  if(localStorage.getItem("LoggedinUser")== null)
-    {
-      navigate('/login')
-    //   alert('User not logged in') 
-    }
 
   const handleRowModesModelChange = (newRowModesModel) => {
     setRowModesModel(newRowModesModel);
@@ -142,9 +144,10 @@ export default function ViewTableComponent() {
     {
       field: 'status',
       headerName: 'Status',
-      type: 'string',
       width: 180,
       editable: true,
+      type: 'singleSelect',
+      valueOptions: ['Not Started', 'In Progress', 'Completed'],
     },
     {
       field: 'actions',
