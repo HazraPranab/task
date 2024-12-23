@@ -4,7 +4,6 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
 import {
@@ -14,15 +13,10 @@ import {
   GridActionsCellItem,
   GridRowEditStopReasons,
 } from '@mui/x-data-grid';
-import {
-  randomId, randomInt
-} from '@mui/x-data-grid-generator';
 import './view.css';
-import { useNavigate } from "react-router-dom";
 import useFetch from '../../Service/useFetch';
-import usePost from '../../Service/usePost';
-import { getUrl } from '../../Service/ApiService';
-
+import { getUrl, insertUrl, updateUrl, deleteUrl } from '../../Service/ApiService';
+import { useSnackbar } from 'notistack';
 
 function EditToolbar(props) {
   const { setRows, setRowModesModel } = props;
@@ -52,11 +46,11 @@ function EditToolbar(props) {
 }
 
 export default function ViewTableComponent() {
-  const [data]= useFetch(getUrl);
+  const { enqueueSnackbar } = useSnackbar();
+  const [success, setisSuccess] = React.useState();
+  const [data]= useFetch(getUrl, success);
   const [rows, setRows] = React.useState([]);
   const [rowModesModel, setRowModesModel] = React.useState({});
-  let isCall = false;
-  
   
   React.useEffect(()=> {
     setRows(data)
@@ -86,6 +80,7 @@ export default function ViewTableComponent() {
   
   const handleDeleteClick = (id) => () => {
     setRows(rows.filter((row) => row.id !== id));
+    deleteData(id)
   };
 
 
@@ -102,27 +97,92 @@ export default function ViewTableComponent() {
     }
   };
 
-  const postDataAPI = (newrow) => {   
+  const insertData = (newrow) => {   
      let body= JSON.stringify({
         id: newrow.id,
         name: newrow.name,
         priority: newrow.priority,
         status: newrow.status
     })
-    fetch('http://localhost:5173/api/Tasks/CreateTasks', {
+    fetch(insertUrl, {
         method: 'post',
         headers: {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'},
         body: body
-    }).then((res) => res.json());
+    }).then((res) => {res.json();
+      if(res.status != 200)
+      {
+        setisSuccess(false);
+        enqueueSnackbar("Some error occured" , { variant: 'error' })
+        
+      }
+      else
+      {
+        setisSuccess(true);
+        enqueueSnackbar("Success !", { variant: 'success' })
+        
+      }})
     
   }
 
-  const processRowUpdate = (newRow) => {
-    postDataAPI(newRow)
+  const updateData = (newrow) => {   
+    let body= JSON.stringify({
+       id: newrow.id,
+       name: newrow.name,
+       priority: newrow.priority,
+       status: newrow.status
+   })
+   fetch(updateUrl, {
+       method: 'put',
+       headers: {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'},
+       body: body
+   }).then((res) => {res.json();
+      if(res.status != 200)
+      {
+        setisSuccess(false);
+        enqueueSnackbar("Save failed !" , { variant: 'error' })
+      }
+      else
+      {
+        setisSuccess(true);
+        enqueueSnackbar("Success !", { variant: 'success' });
+        
+      }})
+      .catch(() => enqueueSnackbar("Some error occured" , { variant: 'error' }));
+   
+ }
 
+ const deleteData = (id) => {   
+ fetch(`${deleteUrl}/${id}`, {
+     method: 'delete',
+     headers: {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'},
+ }).then((res) => {
+  if(res.status != 200)
+  {
+    enqueueSnackbar("Some error occured" , { variant: 'error' })
+    setisSuccess(false);
+  }
+  else
+  {
+    enqueueSnackbar("Success !", { variant: 'success' });
+    setisSuccess(true);
+  }})
+ 
+}
+
+  const processRowUpdate = (newRow) => {
+    if(newRow?.isNew == true)
+    {
+      insertData(newRow);
+      
+    }
+    else
+      updateData(newRow)
+  
+    
     const updatedRow = { ...newRow, isNew: false };
     setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
     return updatedRow;
+   
   };
 
   const handleRowModesModelChange = (newRowModesModel) => {

@@ -1,6 +1,6 @@
 import './App.css';
-import CreateBid from './Tasks/Create';
 import ViewTableComponent from './Tasks/View';
+import ErrorPage from './Tasks/errorPage';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 
@@ -9,7 +9,7 @@ function App() {
     <BrowserRouter>
     <Routes>
         <Route index element={<ViewTableComponent />}/> 
-        <Route path="/place-bid" element={<CreateBid />}/>
+        <Route path='/error' element= {<ErrorPage/>}/>
     </Routes>
   </BrowserRouter>
   );
